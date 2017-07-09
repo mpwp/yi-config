@@ -1,6 +1,40 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module Main where
+{-|
+Module : Main
+Description: Custom Yi configuration
+Portability: POSIX
+Simple Yi configuration to ease haskell development and LaTex editing.
+
+Dependencies:
+  
+  * xelatex
+  
+  * <https://mupdf.com/ mupdf>
+  
+  * <https://hackage.haskell.org/package/hdevtools hdevtools>
+  
+  * <https://hackage.haskell.org/package/hlint hlint>
+  
+  * <https://hackage.haskell.org/package/stylish-haskell stylish-haskell>
+-}
+module Main (
+  main,
+  config,
+  -- ** Global shortcuts
+  raccourcis,
+  -- ** Customize haskell modes
+  modifyHaskellMode,
+  -- ** LaTex compilation and pdf rendering
+  compileLatex,
+  mupdf,
+  -- ** Haskell tools
+  hdevtools,
+  hlint,
+  stylishHaskell,
+  -- ** Help function
+  withFile,
+) where
 
 import           Control.Monad.State.Lazy
 import           Data.List                   (intersperse)
@@ -19,24 +53,26 @@ import qualified Yi.Mode.Latex               as L
 import           Yi.Monad                    (gets)
 import           Yi.TextCompletion           (resetComplete, wordComplete)
 
+-- | Run Yi with custom static configuration
 main :: IO ()
 main = do
   files <- getArgs
   let actions = intersperse (EditorA newTabE) (map (YiA . openNewFile) files)
-  config <- execStateT (runConfigM (cfg >> (startActionsA .= actions))) defaultConfig
-  startEditor config Nothing
+  c <- execStateT (runConfigM (config >> (startActionsA .= actions))) defaultConfig
+  startEditor c Nothing
 
-cfg :: ConfigM ()
-cfg = do
+-- |  Custom configuration
+config :: ConfigM ()
+config = do
   configureVty
   configureVim
   configureMiscModes
 
   addMode L.fastMode
-  addMode $ haskell H.literateMode
-  addMode $ haskell H.preciseMode
-  addMode $ haskell H.cleverMode
-  addMode $ haskell H.preciseMode
+  addMode $ modifyHaskellMode H.literateMode
+  addMode $ modifyHaskellMode H.preciseMode
+  addMode $ modifyHaskellMode H.cleverMode
+  addMode $ modifyHaskellMode H.preciseMode
   publishAction "hlint" hlint
   publishAction "mupdf" mupdf
   publishAction "hdevtools" hdevtools
@@ -47,8 +83,8 @@ cfg = do
   modeBindKeys L.fastMode (ctrlCh 'l' ?>>! compileLatex)
   modeBindKeys L.fastMode (ctrlCh 'p' ?>>! mupdf)
 
--- | 'raccourcis' define global shortcuts
--- It is used to try new tricks.
+-- | 'raccourcis' define global shortcuts.
+-- It is used to quickly try new tricks.
 raccourcis :: I Event Action ()
 raccourcis = choice
   [ ctrlCh '\t' ?>>! nextWinE
@@ -56,9 +92,9 @@ raccourcis = choice
   , ctrlCh 'n' ?>>! wordComplete >> withEditor_ resetComplete
   ]
 
--- | 'haskell' function describe how to change default haskell modes.
-haskell :: Mode syntax -> Mode syntax
-haskell mode =
+-- | 'modifyHaskellMode' function describe how to change default haskell modes.
+modifyHaskellMode :: Mode syntax -> Mode syntax
+modifyHaskellMode mode =
   mode { modeName = modeName mode
        , modeKeymap = topKeymapA %~ ((ctrlCh 'c' ?>>
                         choice [ ctrlCh 'l' ?>>! H.ghciLoadBuffer
