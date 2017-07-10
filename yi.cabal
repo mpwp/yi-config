@@ -26,6 +26,7 @@ executable yi
     , transformers-base >=0.4
     , yi-core         >=0.14
     , yi-frontend-vty >=0.14
+    , yi-fuzzy-open   >=0.14
     , yi-keymap-vim   >=0.14
     , yi-language     >=0.14
     , yi-misc-modes   >=0.14

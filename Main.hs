@@ -7,15 +7,15 @@ Portability: POSIX
 Simple Yi configuration to ease haskell development and LaTex editing.
 
 Dependencies:
-  
+
   * xelatex
-  
+
   * <https://mupdf.com/ mupdf>
-  
+
   * <https://hackage.haskell.org/package/hdevtools hdevtools>
-  
+
   * <https://hackage.haskell.org/package/hlint hlint>
-  
+
   * <https://hackage.haskell.org/package/stylish-haskell stylish-haskell>
 -}
 module Main (
@@ -48,6 +48,7 @@ import           Yi.Config.Default.Vim       (configureVim)
 import           Yi.Config.Default.Vty       (configureVty)
 import           Yi.Config.Simple
 import           Yi.Config.Simple.Types
+import           Yi.Fuzzy
 import qualified Yi.Mode.Haskell             as H
 import qualified Yi.Mode.Latex               as L
 import           Yi.Monad                    (gets)
@@ -84,12 +85,12 @@ config = do
   modeBindKeys L.fastMode (ctrlCh 'p' ?>>! mupdf)
 
 -- | 'raccourcis' define global shortcuts.
--- It is used to quickly try new tricks.
 raccourcis :: I Event Action ()
 raccourcis = choice
-  [ ctrlCh '\t' ?>>! nextWinE
-  , shift (ctrlCh '\t') ?>>! prevWinE
-  , ctrlCh 'n' ?>>! wordComplete >> withEditor_ resetComplete
+  [ ctrlCh 'n' ?>>! wordComplete >> withEditor_ resetComplete
+  , ctrlCh 'p' ?>>! fuzzyOpen
+  , ctrlCh 'h' ?>>! previousTabE
+  , ctrlCh 'l' ?>>! nextTabE
   ]
 
 -- | 'modifyHaskellMode' function describe how to change default haskell modes.
