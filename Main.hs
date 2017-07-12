@@ -91,6 +91,7 @@ raccourcis = choice
   , ctrlCh 'p' ?>>! fuzzyOpen
   , ctrlCh 'h' ?>>! previousTabE
   , ctrlCh 'l' ?>>! nextTabE
+  , ctrlCh 'x' ?>>! errorEditor "bib\nbob"
   ]
 
 -- | 'modifyHaskellMode' function describe how to change default haskell modes.
@@ -129,7 +130,9 @@ hlint = withFile $ \fn -> buildRun "hlint" [T.pack fn] (const $ return ())
 
 -- | Prettify haskell code using stylish-haskell
 stylishHaskell :: YiM ()
-stylishHaskell = withFile $ \fn -> buildRun "stylish-haskell" ["-i", T.pack fn] (const $ return ())
+stylishHaskell = withFile $ \fn -> do
+  b <- runProcessWithInput ("stylish-haskell -i " ++ fn) "Stylish-haskell done."
+  errorEditor $ T.pack b
 
 -- | 'withFile' run the specified function argument on the current buffer.
 withFile :: MonadEditor m => (FilePath -> m ()) -> m ()
