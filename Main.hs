@@ -18,23 +18,23 @@ Dependencies:
 
   * <https://hackage.haskell.org/package/stylish-haskell stylish-haskell>
 -}
-module Main (
-  main,
-  config,
+module Main
+  ( main
+  , config
   -- ** Global shortcuts
-  raccourcis,
+  , raccourcis
   -- ** Customize haskell modes
-  modifyHaskellMode,
+  , modifyHaskellMode
   -- ** LaTex compilation and pdf rendering
-  compileLatex,
-  mupdf,
+  , compileLatex
+  , mupdf
   -- ** Haskell tools
-  hdevtools,
-  hlint,
-  stylishHaskell,
+  , hdevtools
+  , hlint
+  , stylishHaskell
   -- ** Help function
-  withFile,
-) where
+  , withFile
+  ) where
 
 import           Control.Monad.State.Lazy
 import           Data.List                   (intersperse)
@@ -68,7 +68,6 @@ config = do
   configureVty
   configureVim
   configureMiscModes
-
   addMode L.fastMode
   addMode $ modifyHaskellMode H.literateMode
   addMode $ modifyHaskellMode H.preciseMode
@@ -79,46 +78,52 @@ config = do
   publishAction "hdevtools" hdevtools
   publishAction "compile latex" compileLatex
   publishAction "stylish" stylishHaskell
-
   globalBindKeys raccourcis
   modeBindKeys L.fastMode (ctrlCh 'l' ?>>! compileLatex)
   modeBindKeys L.fastMode (ctrlCh 'p' ?>>! mupdf)
 
 -- | 'raccourcis' define global shortcuts.
 raccourcis :: I Event Action ()
-raccourcis = choice
-  [ ctrlCh 'n' ?>>! wordComplete >> withEditor_ resetComplete
-  , ctrlCh 'p' ?>>! fuzzyOpen
-  , ctrlCh 'h' ?>>! previousTabE
-  , ctrlCh 'l' ?>>! nextTabE
-  , ctrlCh 'x' ?>>! errorEditor "bib\nbob"
-  ]
+raccourcis =
+  choice
+    [ ctrlCh 'n' ?>>! wordComplete >> withEditor_ resetComplete
+    , ctrlCh 'p' ?>>! fuzzyOpen
+    , ctrlCh 'h' ?>>! previousTabE
+    , ctrlCh 'l' ?>>! nextTabE
+    , ctrlCh 'x' ?>>! errorEditor "bib\nbob"
+    ]
 
 -- | 'modifyHaskellMode' function describe how to change default haskell modes.
 modifyHaskellMode :: Mode syntax -> Mode syntax
 modifyHaskellMode mode =
-  mode { modeName = modeName mode
-       , modeKeymap = topKeymapA %~ ((ctrlCh 'c' ?>>
-                        choice [ ctrlCh 'l' ?>>! H.ghciLoadBuffer
-                               , ctrlCh 'z' ?>>! H.ghciGet
-                               , ctrlCh 'r' ?>>! H.ghciSend ":r"
-                               , ctrlCh 't' ?>>! H.ghciInferType
-                               , ctrlCh 'c' ?>>! hdevtools
-                               , ctrlCh 'd' ?>>! hlint
-                               , ctrlCh 'e' ?>>! stylishHaskell
-                               ]) <||) }
+  mode
+  { modeName = modeName mode
+  , modeKeymap =
+      topKeymapA %~
+      ((ctrlCh 'c' ?>>
+        choice
+          [ ctrlCh 'l' ?>>! H.ghciLoadBuffer
+          , ctrlCh 'z' ?>>! H.ghciGet
+          , ctrlCh 'r' ?>>! H.ghciSend ":r"
+          , ctrlCh 't' ?>>! H.ghciInferType
+          , ctrlCh 'c' ?>>! hdevtools
+          , ctrlCh 'd' ?>>! hlint
+          , ctrlCh 'e' ?>>! stylishHaskell
+          , ctrlCh 'b' ?>>! brittany
+          ]) <||)
+  }
 
 -- | Function to compile LaTeX files in yi.
 compileLatex :: YiM ()
-compileLatex = withFile $ \fn ->
-  buildRun "xelatex" [ "-interaction=nonstopmode"
-                     , "-file-line-error"
-                     , T.pack fn] (const $ return ())
+compileLatex = withFile $ \fn -> buildRun "xelatex" (T.pack fn : args) (const $ return ())
+  where
+    args = ["-interaction=nonstopmode", "-file-line-error"]
 
 -- | Function to display generated pdf of the currently edited LaTeX file.
 mupdf :: YiM ()
-mupdf = let pdf = flip T.append "pdf" . T.dropEnd 3 . T.pack
-  in withFile $ \fn -> buildRun "mupdf" [pdf fn] (const $ return ())
+mupdf = withFile $ \fn -> buildRun "mupdf" [pdf fn] (const $ return ())
+  where
+    pdf = flip T.append "pdf" . T.dropEnd 3 . T.pack
 
 -- | Check haskell source files with hdevtools. Print results in a new buffer window.
 hdevtools :: YiM ()
@@ -131,8 +136,14 @@ hlint = withFile $ \fn -> buildRun "hlint" [T.pack fn] (const $ return ())
 -- | Prettify haskell code using stylish-haskell
 stylishHaskell :: YiM ()
 stylishHaskell = withFile $ \fn -> do
-  b <- runProcessWithInput ("stylish-haskell -i " ++ fn) "Stylish-haskell done."
-  errorEditor $ T.pack b
+    b <- runProcessWithInput ("stylish-haskell -i " ++ fn) "Stylish-haskell done."
+    errorEditor $ T.pack b
+
+-- | Prettify haskell code using brittany
+brittany :: YiM ()
+brittany = withFile $ \fn -> do
+    b <- runProcessWithInput ("brittany " ++ fn) "Brittany done."
+    errorEditor $ T.pack b
 
 -- | 'withFile' run the specified function argument on the current buffer.
 withFile :: MonadEditor m => (FilePath -> m ()) -> m ()

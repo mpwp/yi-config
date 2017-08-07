@@ -7,3 +7,4 @@ Dependencies:
 -   [hdevtools](https://hackage.haskell.org/package/hdevtools)
 -   [hlint](https://hackage.haskell.org/package/hlint)
 -   [stylish-haskell](https://hackage.haskell.org/package/stylish-haskell)
+-   [brittany](https://hackage.haskell.org/package/brittany)
