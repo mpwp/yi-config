@@ -1,4 +1,6 @@
+\begin{code}
 {-# LANGUAGE OverloadedStrings #-}
+\end{code}
 
 {-|
 Module : Main
@@ -18,6 +20,8 @@ Dependencies:
 
   * <https://hackage.haskell.org/package/stylish-haskell stylish-haskell>
 -}
+
+\begin{code}
 module Main
   ( main
   , config
@@ -53,16 +57,20 @@ import qualified Yi.Mode.Haskell             as H
 import qualified Yi.Mode.Latex               as L
 import           Yi.Monad                    (gets)
 import           Yi.TextCompletion           (resetComplete, wordComplete)
+\end{code}
 
--- | Run Yi with custom static configuration
+Run Yi with custom static configuration
+\begin{code}
 main :: IO ()
 main = do
   files <- getArgs
   let actions = intersperse (EditorA newTabE) (map (YiA . openNewFile) files)
   c <- execStateT (runConfigM (config >> (startActionsA .= actions))) defaultConfig
   startEditor c Nothing
+\end{code}
 
--- |  Custom configuration
+Custom configuration
+\begin{code}
 config :: ConfigM ()
 config = do
   configureVty
@@ -81,8 +89,10 @@ config = do
   globalBindKeys raccourcis
   modeBindKeys L.fastMode (ctrlCh 'l' ?>>! compileLatex)
   modeBindKeys L.fastMode (ctrlCh 'p' ?>>! mupdf)
+\end{code}
 
--- | 'raccourcis' define global shortcuts.
+'raccourcis' define global shortcuts.
+\begin{code}
 raccourcis :: I Event Action ()
 raccourcis =
   choice
@@ -92,8 +102,10 @@ raccourcis =
     , ctrlCh 'l' ?>>! nextTabE
     , ctrlCh 'x' ?>>! errorEditor "bib\nbob"
     ]
+\end{code}
 
--- | 'modifyHaskellMode' function describe how to change default haskell modes.
+'modifyHaskellMode' function describe how to change default haskell modes.
+\begin{code}
 modifyHaskellMode :: Mode syntax -> Mode syntax
 modifyHaskellMode mode =
   mode
@@ -112,43 +124,58 @@ modifyHaskellMode mode =
           , ctrlCh 'b' ?>>! brittany
           ]) <||)
   }
+\end{code}
 
--- | Function to compile LaTeX files in yi.
+Function to compile LaTeX files in yi.
+\begin{code}
 compileLatex :: YiM ()
 compileLatex = withFile $ \fn -> buildRun "xelatex" (T.pack fn : args) (const $ return ())
   where
     args = ["-interaction=nonstopmode", "-file-line-error"]
+\end{code}
 
--- | Function to display generated pdf of the currently edited LaTeX file.
+Function to display generated pdf of the currently edited LaTeX file.
+\begin{code}
 mupdf :: YiM ()
 mupdf = withFile $ \fn -> buildRun "mupdf" [pdf fn] (const $ return ())
   where
     pdf = flip T.append "pdf" . T.dropEnd 3 . T.pack
+\end{code}
 
--- | Check haskell source files with hdevtools. Print results in a new buffer window.
+Check haskell source files with hdevtools. Print results in a new buffer window.
+\begin{code}
 hdevtools :: YiM ()
 hdevtools = withFile $ \fn -> buildRun "hdevtools" ["check", T.pack fn] (const $ return ())
+\end{code}
 
--- | Run hlint with the current haskell buffer. Print results in a new buffer window.
+Run hlint with the current haskell buffer. Print results in a new buffer window.
+\begin{code}
 hlint :: YiM ()
 hlint = withFile $ \fn -> buildRun "hlint" [T.pack fn] (const $ return ())
+\end{code}
 
--- | Prettify haskell code using stylish-haskell
+Prettify haskell code using stylish-haskell
+\begin{code}
 stylishHaskell :: YiM ()
 stylishHaskell = withFile $ \fn -> do
     b <- runProcessWithInput ("stylish-haskell -i " ++ fn) "Stylish-haskell done."
     errorEditor $ T.pack b
+\end{code}
 
--- | Prettify haskell code using brittany
+Prettify haskell code using brittany
+\begin{code}
 brittany :: YiM ()
 brittany = withFile $ \fn -> do
     b <- runProcessWithInput ("brittany " ++ fn) "Brittany done."
     errorEditor $ T.pack b
+\end{code}
 
--- | 'withFile' run the specified function argument on the current buffer.
+'withFile' run the specified function argument on the current buffer.
+\begin{code}
 withFile :: MonadEditor m => (FilePath -> m ()) -> m ()
 withFile f = do
   filename <- withEditor . withCurrentBuffer $ gets file
   case filename of
     Just name -> f name
     Nothing   -> return ()
+\end{code}
